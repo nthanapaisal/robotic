@@ -1,7 +1,7 @@
 #interface
 import tkinter as tk
 from tkinter import font as tkfont
-
+from PIL import ImageTk,Image
 #QR
 import cv2
 import numpy as np
@@ -10,6 +10,7 @@ from scanQR import runScanner
 
 #tools
 import time
+
 
 class interQLADZ(tk.Tk):
     def __init__(self, *args, **kwargs):
@@ -35,13 +36,17 @@ class interQLADZ(tk.Tk):
 
         self.show_frame("HomePage")
 
-
+ 
 
     def show_frame(self, page_name):
         '''Show a frame for the given page name'''
         frame = self.frames[page_name]
         frame.tkraise()
-
+        
+        if page_name == 'loadingPage':
+            self.after(10000, self.show_frame, 'HomePage')
+            
+            #hardware turn on LED
 
 class HomePage(tk.Frame):
     def __init__(self, parent, controller):
@@ -53,8 +58,6 @@ class HomePage(tk.Frame):
                             command=lambda: controller.show_frame("ScanPage"))
         
         payButton = tk.Button(self,text="Pay with cash")
-        
-
         qrButton.pack()
         payButton.pack()
         
@@ -90,6 +93,8 @@ class ScanPage(tk.Frame):
         backButton = tk.Button(self,text="Go back",
                             command=lambda: controller.show_frame("HomePage"))
         backButton.pack()
+        print('scan')
+        
 
 class InfoPage(tk.Frame):
     def __init__(self, parent, controller):
@@ -102,7 +107,6 @@ class InfoPage(tk.Frame):
         
         
         
-        
         confirmButton = tk.Button(self,text="Confirm",
                                 command=lambda: controller.show_frame("confirmPage"))
         confirmButton.pack()
@@ -110,7 +114,7 @@ class InfoPage(tk.Frame):
         backButton = tk.Button(self,text="Go back",
                                 command=lambda: controller.show_frame("ScanPage"))
         backButton.pack()
-
+        print('info')
 
 class confirmPage(tk.Frame):
     def __init__(self, parent, controller):
@@ -119,11 +123,15 @@ class confirmPage(tk.Frame):
         label = tk.Label(self, text="Select your phone then start",font=controller.title_font)
         label.pack(side="top", fill="x", pady=10)
         
-        #implement hardware when confirmButtom is clicked
-        
-        
-        
-        
+        #implement hardware when confirmButtom is clicked (required self because of garbage collection)
+        self.phone1 = ImageTk.PhotoImage(Image.open('./images/phone1.png'))
+        self.phoneClick1 = ImageTk.PhotoImage(Image.open('./images/phone1-2.png'))
+        self.phone2 = ImageTk.PhotoImage(Image.open('./images/phone2.png'))
+        self.phoneClick2 = ImageTk.PhotoImage(Image.open('./images/phone2-2.png'))
+        self.phoneButt1 = tk.Button(self,image=self.phone1,command=lambda *args: self.setSize(1))
+        self.phoneButt2 = tk.Button(self,image=self.phone2,command=lambda *args: self.setSize(2))
+        self.phoneButt1.pack()
+        self.phoneButt2.pack()
         
         confirmButton = tk.Button(self,text="Start Screen Chaning",
                                 command=lambda: controller.show_frame("loadingPage"))
@@ -132,20 +140,36 @@ class confirmPage(tk.Frame):
         backButton = tk.Button(self,text="Go back",
                                 command=lambda: controller.show_frame("InfoPage"))
         backButton.pack()
+        print('confirm')
+    def setSize(self,size):
+        global phoneSize
+        #make sure the other one is not display as selected
+        self.phoneButt1["image"] = self.phone1
+        self.phoneButt2["image"] = self.phone2
+        
+        if size == 1:
+            phoneSize = 10
+            self.phoneButt1["image"] = self.phoneClick1
+            
+        elif size == 2:
+            phoneSize = 12
+            self.phoneButt2["image"] = self.phoneClick2
+            
 
 class loadingPage(tk.Frame):
     def __init__(self, parent, controller):
-            tk.Frame.__init__(self, parent)
-            self.controller = controller
-            label = tk.Label(self, text="Processing",font=controller.title_font)
-            label.pack(side="top", fill="x", pady=10)
+        tk.Frame.__init__(self, parent)
+        self.controller = controller
+        label = tk.Label(self, text="Processing",font=controller.title_font)
+        label.pack(side="top", fill="x", pady=10)
 
-            #if that many seconds return to main page...
-            
+
         
-        
-        
-        
+#global values
+phoneSize = 0
+
+
+  
 if __name__ == "__main__":
     app = interQLADZ()
     app.mainloop()
