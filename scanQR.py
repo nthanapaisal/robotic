@@ -37,5 +37,5 @@ def runScanner():
         cv2.waitKey(1)
 
     #leasing the handle to the webcam
-    camera.release()
+    cap.release()
     cv2.destroyAllWindows()
