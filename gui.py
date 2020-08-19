@@ -1,3 +1,6 @@
+#!/usr/bin/env/ python3
+
+
 #interface
 import tkinter as tk
 from tkinter import font as tkfont
@@ -7,16 +10,17 @@ from PIL import ImageTk,Image
 import cv2
 import numpy as np
 from pyzbar.pyzbar import decode
+import csv
 
 #import RPi.GPIO as GPIO
 class custQLADZ:
 
     
-    def __init__(self):
-        self.first = 'NaN'
-        self.last = 'NaN'
-        self.email = 'NaN'
-        self.userID = 'NaN'
+    def __init__(self,first='NaN',last='NaN',email='NaN',userID='NaN'):
+        self.first = first
+        self.last = last
+        self.email = email
+        self.userID = userID
         self.exists = False
 
 
@@ -31,31 +35,43 @@ class webcam:
           
         
     def start(self):
-    
+        global currCust
+        
+        
         while self.stop:
                 
             #reading using cam if not QR it is empty list
             success,img = self.cam.read()
             
-            #decode scanned img and it has QR
+            #decode scanned img and it has QR (this will start when it gets a QR or it wont)
             for barcode in decode(img):
                 #get the userID from barcode var
                 userID = barcode.data.decode('utf-8')
                 
                 #check if this userID exists in data base
-                currCust.ID =  'Suptha'
-                
-                if userID == currCust.ID:
-                    print('Scanning success')
-                    self.stop = False
-                    currCust.exists = True
-                    break        
+                for cust in data:
+
+                    #assign user data to the currect customer
+                    currCust.first = cust[0]
+                    currCust.last = cust[1]
+                    currCust.email = cust[2]
+                    currCust.userID = cust[3]
+
+                    
+                    #if QR matched data then exit this data loop
+                    if userID == currCust.userID:
+                        self.stop = False
+                        currCust.exists = True
+                        break
+                        
+                #if the detected barcode matched break this cam loop
+                if currCust.exists:
+                    break
                     
             cv2.imshow('Result',img)
             cv2.waitKey(1)
             
     def stopF(self):
-        self.stop = False
         self.cam.release()
         cv2.destroyAllWindows()
         
@@ -64,12 +80,13 @@ class webcam:
 class interQLADZ(tk.Tk):
     def __init__(self, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
+        
         #rasp resolution
         self.geometry('800x480')
+        
         #program text
         self.title_font = tkfont.Font(family='Helvetica', size=18, weight="bold", slant="italic")
-        #self.vidSrc = webcam()
-        
+
         container = tk.Frame(self)
         container.pack(side="top", fill="both", expand=True)
         container.grid_rowconfigure(0, weight=1)
@@ -81,18 +98,21 @@ class interQLADZ(tk.Tk):
             page_name = F.__name__
             frame = F(parent=container, controller=self)
             self.frames[page_name] = frame
-
             frame.grid(row=0, column=0, sticky="nsew")
 
         self.show_frame("HomePage")
 
- 
+    def getUserData(self,currCust):
+        strr ='Name: ' + str(currCust.first) + ' ' + str(currCust.last) + '\nEmail: ' + str(currCust.email) + '\nUserID: ' + str(currCust.userID)
+        return strr
+    
 
     def show_frame(self, page_name):
         '''Show a frame for the given page name'''
         frame = self.frames[page_name]
         frame.tkraise()
         global cam
+        global currCust
         flag = 1 
         
         if page_name == 'loadingPage':
@@ -103,22 +123,20 @@ class interQLADZ(tk.Tk):
             
         if page_name == 'HomePage':
            
-           #GPIO.output(40,GPIO.LOW)
-            
+            #initialize(reset)
             currCust.exists = False
-            #came back from scan page, turn off camera
-            if cam.isOpened():
-                cam.stopF()
             
+
+            #hardware turn off LED
+            #GPIO.output(40,GPIO.LOW)
+     
         if page_name == 'ScanPage':
-            cam.stop = True
-            
+            cam.stop = True 
             cam.start()
-            #turn off camera when getting user data
+            #turn off camera when getting user data and send it to infopage
             if currCust.exists:
                 cam.stopF()
                 self.after(0, self.show_frame, 'InfoPage')
-
                 
                 
 class HomePage(tk.Frame):
@@ -143,13 +161,9 @@ class ScanPage(tk.Frame):
         label.pack(side="top", fill="x", pady=10)
         
         #bring in QR scanner + return user info
-        camArea = tk.Canvas(self,width = 640,height = 480)
-        camArea.pack()
+        #camArea = tk.Canvas(self,width = 640,height = 480)
+        #camArea.pack()
         #camArea.create_image(0, 0, image = cam, anchor =NW)
-
-        skipButton = tk.Button(self,text="Skip",
-                                command=lambda: controller.show_frame("InfoPage"))
-        skipButton.pack()
 
 
         backButton = tk.Button(self,text="Go back",
@@ -164,20 +178,21 @@ class InfoPage(tk.Frame):
         self.controller = controller
         label = tk.Label(self, text="Confirm your information",font=controller.title_font)
         label.pack(side="top", fill="x", pady=10)
+        global currCust
         
         #show user data
-        
-        
-        
+        strr = controller.getUserData(currCust)
+        userLabel = tk.Label(self, text=strr,font=controller.title_font)
+        userLabel.pack()
+
         confirmButton = tk.Button(self,text="Confirm",
                                 command=lambda: controller.show_frame("confirmPage"))
         confirmButton.pack()
         
-        backButton = tk.Button(self,text="Go back",
-                                command=lambda: controller.show_frame("ScanPage"))
+        backButton = tk.Button(self,text="Start Over",
+                                command=lambda: controller.show_frame("HomePage"))
         backButton.pack()
-        print('info')
-
+        
 class confirmPage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
@@ -229,15 +244,22 @@ class loadingPage(tk.Frame):
         label = tk.Label(self, text="Processing",font=controller.title_font)
         label.pack(side="top", fill="x", pady=10)
 
-    #update database -1 quantity, date/time stamp
+
         
 #global values
-phoneSize = 0
-cam = webcam()
-currCust = custQLADZ()
 #GPIO.setmode(GPIO.BOARD)
 #GPIO.setup(40, GPIO.OUT)
 #GPIO.output(40, GPIO.LOW)
+phoneSize = 0
+cam = webcam()
+currCust = custQLADZ()
+data = []
+
+with open('fdata.csv', newline='') as csvfile:
+    spamreader = csv.reader(csvfile, delimiter=',', quotechar='|')
+    for row in spamreader:
+        data.append(row)
+
 
   
 if __name__ == "__main__":
