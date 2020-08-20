@@ -12,7 +12,7 @@ import numpy as np
 from pyzbar.pyzbar import decode
 import csv
 
-#import RPi.GPIO as GPIO
+import RPi.GPIO as GPIO
 class custQLADZ:
 
     
@@ -119,7 +119,7 @@ class interQLADZ(tk.Tk):
             self.after(10000, self.show_frame, 'HomePage')
   
             #hardware turn on LED
-            #GPIO.output(40,GPIO.HIGH)
+            GPIO.output(40,GPIO.HIGH)
             
         if page_name == 'HomePage':
            
@@ -128,7 +128,7 @@ class interQLADZ(tk.Tk):
             
 
             #hardware turn off LED
-            #GPIO.output(40,GPIO.LOW)
+            GPIO.output(40,GPIO.LOW)
      
         if page_name == 'ScanPage':
             cam.stop = True 
@@ -160,11 +160,6 @@ class ScanPage(tk.Frame):
         label = tk.Label(self, text="Please Scan your QR code",font=controller.title_font)
         label.pack(side="top", fill="x", pady=10)
         
-        #bring in QR scanner + return user info
-        #camArea = tk.Canvas(self,width = 640,height = 480)
-        #camArea.pack()
-        #camArea.create_image(0, 0, image = cam, anchor =NW)
-
 
         backButton = tk.Button(self,text="Go back",
                             command=lambda: controller.show_frame("HomePage"))
@@ -247,9 +242,9 @@ class loadingPage(tk.Frame):
 
         
 #global values
-#GPIO.setmode(GPIO.BOARD)
-#GPIO.setup(40, GPIO.OUT)
-#GPIO.output(40, GPIO.LOW)
+GPIO.setmode(GPIO.BOARD)
+GPIO.setup(40, GPIO.OUT)
+GPIO.output(40, GPIO.LOW)
 phoneSize = 0
 cam = webcam()
 currCust = custQLADZ()
